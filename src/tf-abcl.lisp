@@ -44,6 +44,13 @@
 ;;;; CPU
 
 ;;; ABCL already pushes :x86-64
-(if (< 32 (logcount most-positive-fixnum))
-    (pushnew :64-bit *features*)
-    (pushnew :32-bit *features*))
+
+;;; ABCL's fixnums are 32 bits wide whatever the JVM underneath is, so
+;;; MOST-POSITIVE-FIXNUM says nothing about the platform; ask the JVM for
+;;; its data model instead.
+(pushnew (let ((data-model (jstatic "getProperty" "java.lang.System"
+                                    "sun.arch.data.model")))
+           (cond ((equal data-model "64") :64-bit)
+                 ((equal data-model "32") :32-bit)
+                 (t (error "Data model ~A unknown" data-model))))
+         *features*)
